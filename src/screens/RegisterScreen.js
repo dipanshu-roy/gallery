@@ -93,7 +93,7 @@ export default function RegisterScreen({ navigation }) {
     try {
       setLoading(true); // 🔥 START LOADER
 
-      const res = await fetch("http://43.205.125.181/api/register", {
+      const res = await fetch("http://3.110.147.202/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -188,7 +188,7 @@ export default function RegisterScreen({ navigation }) {
         <TextInput
           placeholder="Password"
           placeholderTextColor={colors.gray}
-          secureTextEntry
+          // secureTextEntry
           value={password}
           onChangeText={setPassword}
           style={styles.input}
@@ -198,11 +198,12 @@ export default function RegisterScreen({ navigation }) {
         <TextInput
           placeholder="Confirm password"
           placeholderTextColor={colors.gray}
-          secureTextEntry
+          // secureTextEntry
           value={cpassword}
           onChangeText={setCpassword}
           style={styles.input}
         />
+        
 
         <CustomButton
           title="Create Account"

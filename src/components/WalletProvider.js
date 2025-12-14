@@ -14,7 +14,7 @@ export default function WalletProvider({ children }) {
         return;
       }
 
-      const res = await fetch("http://43.205.125.181/api/wallet", {
+      const res = await fetch("http://3.110.147.202/api/wallet", {
         headers: {
           "Content-Type": "application/json",
           Authorization: token,

@@ -7,7 +7,7 @@ import Splash2 from "../screens/Splash2";
 import CoinScreen from "../screens/CoinScreen";
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
-import ColorGameScreen from '../screens/ColorGameScreen';
+import ColorGameScreen from '../screens/ColorGame2Screen';
 import WithdrawScreen from '../screens/WithdrawScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import OtpScreen from '../screens/OtpScreen';

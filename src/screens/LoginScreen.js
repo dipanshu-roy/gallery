@@ -70,7 +70,7 @@ export default function LoginScreen({ navigation }) {
   try {
     setSubmitting(true); // 🔥 START LOADER
 
-    const res = await fetch("http://43.205.125.181/api/login", {
+    const res = await fetch("http://3.110.147.202/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -192,7 +192,7 @@ export default function LoginScreen({ navigation }) {
         <TextInput
           placeholder="Password"
           placeholderTextColor={colors.gray}
-          secureTextEntry
+          // secureTextEntry
           value={password}
           onChangeText={setPassword}
           style={styles.input}

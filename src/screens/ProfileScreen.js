@@ -26,7 +26,7 @@ export default function ProfileScreen({ navigation }) {
       const token = await getToken();
       if (!token) return logout();
 
-      const res = await fetch("http://43.205.125.181/api/profile-view/", {
+      const res = await fetch("http://3.110.147.202/api/profile-view/", {
         headers: {
           "Content-Type": "application/json",
           Authorization: token, // ✅ same auth style as your backend

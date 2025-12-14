@@ -67,7 +67,7 @@ export default function OtpScreen({ route, navigation }) {
   try {
     setVerifying(true);
 
-    const res = await fetch("http://43.205.125.181/api/verify-otp", {
+    const res = await fetch("http://3.110.147.202/api/verify-otp", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

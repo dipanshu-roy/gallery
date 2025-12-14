@@ -1,4 +1,5 @@
-import { Platform, View, StyleSheet } from "react-native";
+import { Platform, View, StyleSheet, StatusBar } from "react-native";
+import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import AppNavigator from "./src/navigation/AppNavigator";
 import WalletProvider from "./src/components/WalletProvider";
 
@@ -15,6 +16,10 @@ export default function App() {
 
   return (
     <WalletProvider>
+      {/* Android status bar fix */}
+      <ExpoStatusBar style="light" backgroundColor="#070820" />
+      <StatusBar barStyle="light-content" backgroundColor="#070820" />
+
       <AppNavigator />
     </WalletProvider>
   );

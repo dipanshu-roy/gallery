@@ -1,5 +1,7 @@
 import React, { useContext, useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Image, StyleSheet, ScrollView } from "react-native";
+import axios from "axios";
+import { getToken } from "../storage/storage";
+import { View, Text, TouchableOpacity, TextInput, Image, StyleSheet, ScrollView,Alert, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import WalletContext from "../components/WalletContext";
 import BackIcon from "../assets/icons/angle-left.svg";
@@ -9,6 +11,69 @@ export default function WithdrawScreen({ navigation, route }) {
 
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const amounts = [100, 200, 500, 1000, 2000, 3000, 5000];
+  const [loading, setLoading] = useState(false);
+  const handleWithdraw = async () => {
+    const amount = parseInt(withdrawAmount);
+
+    // Frontend validation (match backend)
+    if (!amount) {
+      Alert.alert("Error", "Please enter amount");
+      return;
+    }
+    if (amount < 100) {
+      Alert.alert("Error", "Minimum withdraw amount is ₹100");
+      return;
+    }
+    if (amount > 10000) {
+      Alert.alert("Error", "Maximum withdraw amount is ₹10000");
+      return;
+    }
+    if (amount > wallet) {
+      Alert.alert("Error", "Insufficient wallet balance");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const token = await getToken();
+      if (!token) {
+        Alert.alert("Session Expired", "Please login again");
+        return;
+      }
+
+      const res = await axios.post(
+        "http://3.110.147.202/api/withdraw/",
+        { amount },
+        {
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (res.data.status === 200) {
+        Alert.alert("Success", res.data.message);
+        setWithdrawAmount("");
+
+        // 🔁 OPTIONAL: refresh wallet from API or deduct locally
+        // setWallet(prev => prev - amount);
+
+        navigation.goBack();
+      } else {
+        Alert.alert("Error", res.data.message || "Withdraw failed");
+      }
+    } catch (err) {
+      console.log("FULL ERROR:", err);
+      console.log("MESSAGE:", err.message);
+      console.log("RESPONSE:", err.response);
+      Alert.alert("Error", err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <LinearGradient colors={["#06071C", "#0A0C2A", "#0E102F"]} style={{ flex: 1 }}>
@@ -73,9 +138,18 @@ export default function WithdrawScreen({ navigation, route }) {
           ))}
         </View>
 
-        {/* PAY BUTTON */}
-        <TouchableOpacity style={styles.payBtn}>
-          <Text style={styles.payBtnTxt}>Withdraw Now ₹{withdrawAmount || 0}</Text>
+        <TouchableOpacity
+          style={[styles.payBtn, loading && { opacity: 0.7 }]}
+          onPress={handleWithdraw}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.payBtnTxt}>
+              Withdraw Now ₹{withdrawAmount || 0}
+            </Text>
+          )}
         </TouchableOpacity>
 
       </ScrollView>
