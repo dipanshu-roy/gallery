@@ -21,6 +21,7 @@ import {
   Dimensions,
 } from "react-native";
 
+
 import { Audio } from "expo-av";
 import BackIcon from "../assets/icons/angle-left.svg";
 import SoundOnIcon from "../assets/icons/volume-up.svg";
