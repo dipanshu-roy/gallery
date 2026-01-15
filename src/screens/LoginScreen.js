@@ -1,181 +1,125 @@
 import BottomAlert from "../components/BottomAlert";
 import { saveToken } from "../storage/storage";
-import WalletContext from "../components/WalletContext";
+import { BASE_URL } from "../config/api";
+import { Ionicons } from "@expo/vector-icons";
+
 import React, { useState, useContext } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import CustomButton from '../components/CustomButton';
-import Glow from '../assets/images/bg_image.png';
-import colors from '../styles/colors';
-import theme from '../styles/theme';
-import { Image } from 'react-native';
-
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Keyboard
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import CustomButton from "../components/CustomButton";
+import Glow from "../assets/images/bg_image.png";
+import colors from "../styles/colors";
+import theme from "../styles/theme";
+import { Image } from "react-native";
 
 export default function LoginScreen({ navigation }) {
-  const [activeTab, setActiveTab] = useState("phone"); // phone | email
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { refreshWallet } = useContext(WalletContext);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertType, setAlertType] = useState("error");
   const [submitting, setSubmitting] = useState(false);
-
-
-  const handlePhoneChange = (text) => {
-    const cleaned = text.replace(/[^0-9]/g, "");
-    setPhone(cleaned);
-  };
+  const [showPassword, setShowPassword] = useState(false);
 
   const showAlert = (msg, type = "error") => {
     setAlertMessage(msg);
     setAlertType(type);
     setAlertVisible(true);
   };
+
   const handleLogin = async () => {
-  if (submitting) return; // prevent double click
+    if (submitting) return;
 
-  let username = "";
-
-  if (activeTab === "phone") {
-    const cleaned = phone.replace(/[^0-9]/g, "");
-    if (cleaned.length !== 10) {
-      showAlert("Enter valid 10-digit phone number");
-      return;
-    }
-    username = cleaned;
-  }
-
-  if (activeTab === "email") {
     if (!email.includes("@") || !email.includes(".")) {
       showAlert("Enter a valid email address");
       return;
     }
-    username = email.toLowerCase();
-  }
 
-  if (!password) {
-    showAlert("Password is required");
-    return;
-  }
-
-  try {
-    setSubmitting(true); // 🔥 START LOADER
-
-    const res = await fetch("http://3.110.147.202/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        username,
-        password,
-      }),
-    });
-
-    const data = await res.json();
-    console.log(data);
-
-    if (data.status === 200) {
-      await saveToken(data.token);
-
-      await refreshWallet();
-
-      showAlert("Login successful!", "success");
-
-      setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Dashboard" }],
-        });
-      }, 800);
-    } else {
-      showAlert(data.message || "Login failed");
+    if (!password) {
+      showAlert("Password is required");
+      return;
     }
-  } catch (err) {
-    console.error("Login error:", err);
-    showAlert("Something went wrong!");
-  } finally {
-    setSubmitting(false); // 🔥 STOP LOADER
-  }
-};
 
+    try {
+      setSubmitting(true);
 
-
+      const res = await fetch(`${BASE_URL}org-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.toLowerCase(),
+          password
+        })
+      });
+      // console.log(`${BASE_URL}org-login`);
+      const data = await res.json();
+      console.log(data);
+      if (data.status_code === 200) {
+        await saveToken(data.access_token);
+        console.log(data.access_token);
+        showAlert("Login successful!", "success");
+        setTimeout(() => {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Dashboard" }]
+          });
+        }, 500);
+      } else {
+        showAlert(data.message || "Login failed");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      showAlert("Something went wrong!");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <LinearGradient
-      colors={["#06071C", "#0A0C2A", "#0E102F"]}
+      colors={["#fef1eb", "#d7c5bcff", "#737293ff"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.gradient}
     >
-      <View style={styles.container}>
-        <Image source={Glow} style={styles.bottomGlowImage} resizeMode="contain" />
-        <View style={styles.logoTab}>
-          <Image
-            source={require("../assets/images/logo.png")}
-            style={styles.logo}
-          />
-        </View>
-        <Text style={styles.headerTitle}>Log in</Text>
-        <Text style={styles.subtitle}>
-          Please log in with your phone number or email
-        </Text>
+      <Image source={Glow} style={styles.bottomGlowImage} resizeMode="contain" />
 
-        <View style={styles.tabContainer}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "phone" && styles.activeTab]}
-            onPress={() => setActiveTab("phone")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "phone" ? styles.activeTabText : styles.inactiveTabText
-              ]}
-            >
-              Phone Number
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            {/* Logo */}
+            <View style={styles.logoTab}>
+              <Image
+                source={require("../assets/images/logo.png")}
+                style={styles.logo}
+              />
+            </View>
+
+            <Text style={styles.headerTitle}>Log in</Text>
+            <Text style={styles.subtitle}>
+              Please log in with your email and password
             </Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "email" && styles.activeTab]}
-            onPress={() => setActiveTab("email")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === "email" ? styles.activeTabText : styles.inactiveTabText
-              ]}
-            >
-              Email Login
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {activeTab === "phone" && (
-          <>
-            <Text style={styles.label}>Phone</Text>
-            <TextInput
-              placeholder="Enter phone number"
-              placeholderTextColor={colors.gray}
-              keyboardType="numeric"
-              value={phone}
-              onChangeText={handlePhoneChange}
-              style={styles.input}
-            />
-          </>
-        )}
-
-        {/* Email Login */}
-        {activeTab === "email" && (
-          <>
+            {/* Email */}
             <Text style={styles.label}>Email</Text>
             <TextInput
               placeholder="Enter your email"
@@ -183,109 +127,96 @@ export default function LoginScreen({ navigation }) {
               value={email}
               onChangeText={setEmail}
               style={styles.input}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              returnKeyType="next"
             />
 
+            {/* Password */}
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.passwordContainer}>
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor={colors.gray}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                style={styles.passwordInput}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+              />
 
-          </>
-        )}
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={colors.gray}
-          // secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeIcon}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-outline":"eye-off-outline"}
+                  size={20}
+                  color={colors.gray}
+                />
+              </TouchableOpacity>
+            </View>
 
-        <CustomButton
-          title="Login"
-          onPress={handleLogin}
-          loading={submitting}
-          disabled={submitting}
-        />
+            <CustomButton
+              title="Login"
+              onPress={handleLogin}
+              loading={submitting}
+              disabled={submitting}
+              style={styles.customButton}
+            />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
-
-        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.switchText}>
-            Don't have an account? Register
-          </Text>
-        </TouchableOpacity>
-      </View>
       <BottomAlert
         visible={alertVisible}
         message={alertMessage}
         type={alertType}
         onHide={() => setAlertVisible(false)}
       />
-
     </LinearGradient>
   );
 }
+
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: "center",
+    padding: 20
   },
   logoTab: {
     width: "100%",
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 40
   },
-
   logo: {
     width: 160,
     height: 60,
-    resizeMode: "contain",
+    resizeMode: "contain"
   },
   headerTitle: {
     fontSize: 30,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#fff',
-    marginBottom: 6,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#fff",
+    marginBottom: 6
   },
   subtitle: {
-    textAlign: 'center',
-    color: '#ffffffff',
+    textAlign: "center",
+    color: "#ffffffff",
     marginBottom: 30,
-    fontSize: 13,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  activeTab: {
-    backgroundColor: "#0c1f4b"
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  activeTabText: {
-    color: '#feffffff',
-  },
-  inactiveTabText: {
-    color: '#0c1f4b',
+    fontSize: 13
   },
   label: theme.text.label,
   input: theme.input,
   switchText: {
     marginTop: 20,
-    color: '#fff',
-    textAlign: 'center',
+    color: "#fff",
+    textAlign: "center",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500"
   },
   bottomGlowImage: {
     position: "absolute",
@@ -294,5 +225,23 @@ const styles = StyleSheet.create({
     height: 220,
     left: "-20%",
     opacity: 0.9
-  }
+  },
+  customButton: {
+    marginTop: 10
+  },
+  passwordContainer: {
+    position: "relative",
+    justifyContent: "center",
+  },
+  passwordInput: {
+    ...theme.input,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 15,
+    height: "100%",
+    top:-5,
+    justifyContent: "center",
+  },
+
 });

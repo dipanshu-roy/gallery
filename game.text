@@ -1,0 +1,86 @@
+Socket.IO
+
+
+sudo nano /etc/systemd/system/daphne.service
+
+[Unit]
+Description=Daphne ASGI Service
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/srv/application
+Environment="DJANGO_SETTINGS_MODULE=game.settings"
+ExecStart=/srv/application/venv/bin/daphne \
+          -b 127.0.0.1 \
+          -p 6001 \
+          game.asgi:application
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+
+sudo systemctl start daphne
+sudo systemctl enable daphne
+
+sudo systemctl status daphne
+
+daphne -b 127.0.0.1 -p 6001 game.asgi:application
+
+
+
+sudo nano /etc/nginx/sites-available/game
+
+server {
+    listen 80;
+    server_name flybetx.com www.flybetx.com;
+    return 301 https://flybetx.com$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name flybetx.com www.flybetx.com;
+
+    ssl_certificate /etc/letsencrypt/live/flybetx.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/flybetx.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+   # ssl_dhparam /etc/letsencrypt/letsencrypt/ssl-dhparams.pem;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    location /static/ {
+        alias /srv/application/static/;
+    }
+
+    location /media/ {
+        alias /srv/application/media/;
+    }
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_pass http://unix:/srv/application/game.sock;
+    }
+	location /ws/ {
+		proxy_pass http://127.0.0.1:6001;
+		proxy_http_version 1.1;
+
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+
+		proxy_set_header Host $host;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+		proxy_set_header X-Forwarded-Proto https;
+
+		proxy_read_timeout 86400;
+	}
+}

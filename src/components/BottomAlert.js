@@ -75,10 +75,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     borderRadius: 8,
     zIndex: 9999,
-    elevation: 8,
+    elevation: 10,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    zIndex: 9999,
   },
 
   text: {

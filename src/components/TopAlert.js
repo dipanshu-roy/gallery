@@ -67,19 +67,20 @@ export default function TopAlert({ visible, message, type = "error", onHide }) {
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    top: 35,
-    left: 15,
-    right: 15,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-    zIndex: 9999,
-    elevation: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+  position: "absolute",
+  top: 35,
+  left: 15,
+  right: 15,
+  paddingVertical: 14,
+  paddingHorizontal: 18,
+  borderRadius: 8,
+  zIndex: 10,        // 🔥 higher than overlay
+  elevation: 10,
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
+
 
   text: {
     color: "#fff",

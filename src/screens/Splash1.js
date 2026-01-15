@@ -1,29 +1,61 @@
-import React, { useState } from 'react';
+import React, { useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Platform,
-  Image
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Glow from '../assets/images/bg_image.png';
-console.log("RUNNING ON:", Platform.OS);
+  Image,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Glow from "../assets/images/bg_image.png";
+import { getToken } from "../storage/storage";
+import { BASE_URL } from "../config/api";
+
 export default function Splash1({ navigation }) {
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    try {
+      const token = await getToken();
+      if (!token) {
+        navigation.replace("Login");
+        return;
+      }
+      const res = await fetch(`${BASE_URL}check-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ access_token: token }),
+      });
+
+      const data = await res.json();
+
+      if (data.status === 200) {
+        navigation.replace("Dashboard");
+      } else {
+        navigation.replace("Login");
+      }
+    } catch (error) {
+      console.log("Token check error:", error);
+      navigation.replace("Login");
+    }
+  };
+
   return (
     <LinearGradient
-      colors={["#06071C", "#0A0C2A", "#0E102F"]}
+      colors={["#fef1eb", "#d7c5bcff", "#737293ff"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
       style={styles.gradient}
     >
       <View style={styles.container}>
-        
-        {/* Glow background */}
         <Image source={Glow} style={styles.bottomGlowImage} resizeMode="contain" />
 
-        {/* Logo */}
         <View style={styles.logoTab}>
           <Image
             source={require("../assets/images/logo.png")}
@@ -33,23 +65,13 @@ export default function Splash1({ navigation }) {
 
         <Text style={styles.headerTitle}>Play & Win Daily!</Text>
         <Text style={styles.subtitle}>
-          Play exciting games and stand a chance to win ₹1 Crore every day!
+          Checking your session...
         </Text>
-
-        {/* Centered Button */}
-        <View style={styles.buttonWrapper}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => navigation.navigate("Splash2")}
-          >
-            <Text style={styles.buttonText}>Next ➜</Text>
-          </TouchableOpacity>
-        </View>
-
       </View>
     </LinearGradient>
   );
 }
+
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
@@ -68,13 +90,13 @@ const styles = StyleSheet.create({
   },
 
   logo: {
-    width: 160,
-    height: 60,
+    width:200,
+    height: 50,
     resizeMode: "contain",
   },
 
   headerTitle: {
-    fontSize: 30,
+    fontSize: 25,
     fontWeight: 'bold',
     textAlign: 'center',
     color: '#fff',
@@ -108,7 +130,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 30,
-    backgroundColor: "rgba(255,255,255,0.15)",
+    backgroundColor: "#1f98e0",
   },
 
   buttonText: {

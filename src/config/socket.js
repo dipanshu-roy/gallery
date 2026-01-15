@@ -1,0 +1,1 @@
+export const IO = "wss://flybetx.com/ws/";

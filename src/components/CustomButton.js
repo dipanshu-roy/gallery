@@ -15,7 +15,7 @@ export default function CustomButton({
   // When disabled → use dim colors
   const gradientColors = isDisabled
     ? ["#4a4a4a", "#6b6b6b"]
-    : ["#0A93CD", "#3EC6FF"];
+    : ["#1f98e0", "#1f98e0"];
 
   return (
     <TouchableOpacity
@@ -44,17 +44,17 @@ export default function CustomButton({
 const styles = StyleSheet.create({
   wrapper: {
     width: "100%",
-    paddingTop: 10,
+    paddingTop: 5,
   },
   btn: {
-    paddingVertical: 14,
+    paddingVertical: 7,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   txt: {
     color: "#f8f8f8",
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "600",
   },
   disabledWrapper: {

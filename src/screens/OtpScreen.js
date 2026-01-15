@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import {
     View,
     Text,
@@ -8,11 +8,12 @@ import {
     Keyboard,
     Image
 } from "react-native";
+import { BASE_URL } from "../config/api";
 import { LinearGradient } from "expo-linear-gradient";
 import BottomAlert from "../components/BottomAlert";
 import CustomButton from "../components/CustomButton";
 import Glow from '../assets/images/bg_image.png';
-import { saveToken } from "../storage/storage";
+import { saveToken,getToken,removeToken } from "../storage/storage";
 
 
 export default function OtpScreen({ route, navigation }) {
@@ -27,11 +28,28 @@ export default function OtpScreen({ route, navigation }) {
     const [alertType, setAlertType] = useState("error");
     const [verifying, setVerifying] = useState(false);
     const [resending, setResending] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
 
     const showAlert = (msg, type = "error") => {
         setAlertMessage(msg);
         setAlertType(type);
         setAlertVisible(true);
+    };
+    const logout = async () => {
+      if (loggingOut) return;
+    
+      setLoggingOut(true);
+      try {
+        await removeToken();
+    
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Login" }],
+        });
+      } catch (e) {
+        console.log("Logout error", e);
+        setLoggingOut(false);
+      }
     };
     useEffect(() => {
         if (timer === 0) return;
@@ -55,53 +73,61 @@ export default function OtpScreen({ route, navigation }) {
         //     verifyOtp(newOtp.join(""));
         // }
     };
+    const handleKeyPress = (e, index) => {
+        if (e.nativeEvent.key === "Backspace") {
+            if (otp[index] === "" && index > 0) {
+                const newOtp = [...otp];
+                newOtp[index - 1] = "";
+                setOtp(newOtp);
+                inputs.current[index - 1]?.focus();
+            }
+        }
+    };
+
 
     const verifyOtp = async (finalOtp) => {
-  if (verifying) return;
+        if (verifying) return;
 
-  if (finalOtp.length < 6) {
-    showAlert("Enter complete 6-digit OTP");
-    return;
-  }
+        if (finalOtp.length < 6) {
+            showAlert("Enter complete 6-digit OTP");
+            return;
+        }
 
-  try {
-    setVerifying(true);
+        try {
+            setVerifying(true);
 
-    const res = await fetch("http://3.110.147.202/api/verify-otp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token, // ✅ same as old working code
-      },
-      body: JSON.stringify({ otp: finalOtp }),
-    });
+            const res = await fetch(`${BASE_URL}verify-otp`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: token, // ✅ same as old working code
+                },
+                body: JSON.stringify({ otp: finalOtp }),
+            });
 
-    const data = await res.json();
+            const data = await res.json();
+            console.log(data);
+            if (data.status === 200) {
+                showAlert("OTP Verified Successfully!", "success");
+                await saveToken(token);
+                setTimeout(() => {
+                    setAlertVisible(false);
+                    navigation.reset({ index: 0, routes: [{ name: "Dashboard" }] });
+                }, 800);
 
-    if (data.status === 200) {
-      showAlert("OTP Verified Successfully!", "success");
+            } else if (data.status === 403) {
+                showAlert(data.message);
+                setTimeout(() => navigation.replace("Register"), 1500);
 
-      // ✅ SAVE SAME TOKEN (THIS IS THE KEY)
-      await saveToken(token);
-
-      setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: "Dashboard" }],
-        });
-      }, 800);
-    } else {
-      showAlert(data.message || "Invalid OTP");
-    }
-  } catch (e) {
-    showAlert("Something went wrong!");
-  } finally {
-    setVerifying(false);
-  }
-};
-
-
-
+            } else {
+                showAlert(data.message || "Invalid OTP");
+            }
+        } catch (e) {
+            showAlert("Something went wrong!");
+        } finally {
+            setVerifying(false);
+        }
+    };
     const resendOtp = async () => {
         if (resending) return;
 
@@ -109,25 +135,29 @@ export default function OtpScreen({ route, navigation }) {
         try {
             setResending(true);
 
-            const res = await fetch("http://43.205.125.181/api/resend-otp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
+            const res = await fetch(BASE_URL + "resend-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json",Authorization: token },
+                body: JSON.stringify({ token }),
             });
 
             const data = await res.json();
 
             if (data.status === 200) {
-            showAlert("OTP Sent Again!", "success");
-            } else {
-            showAlert(data.message);
+                showAlert("OTP Sent Again!", "success");
+            }
+            if (data.status === 403) {
+                showAlert(data.message);
+                setTimeout(() => navigation.replace("Register"), 1500);
+            }else {
+                showAlert(data.message);
             }
         } catch (err) {
             showAlert("Could not resend OTP");
         } finally {
             setResending(false);
         }
-        };
+    };
 
     return (
         <LinearGradient
@@ -143,9 +173,8 @@ export default function OtpScreen({ route, navigation }) {
                     />
                 </View>
                 <Text style={styles.title}>Verify OTP</Text>
-                <Text style={styles.subtitle}>Enter the 4-digit code sent to you</Text>
+                <Text style={styles.subtitle}>Enter the 6-digit code sent to your email</Text>
 
-                {/* OTP Boxes */}
                 <View style={styles.otpRow}>
                     {otp.map((digit, index) => (
                         <TextInput
@@ -155,6 +184,7 @@ export default function OtpScreen({ route, navigation }) {
                             keyboardType="number-pad"
                             maxLength={1}
                             onChangeText={(text) => handleChange(text, index)}
+                            onKeyPress={(e) => handleKeyPress(e, index)}
                             style={styles.otpInput}
                         />
                     ))}
@@ -199,9 +229,10 @@ const styles = StyleSheet.create({
     gradient: { flex: 1 },
     container: {
         flex: 1,
-        padding: 25,
+        padding: 10,
         justifyContent: "center",
     },
+    logo: { height: 25,width:110 },
     logoTab: {
         width: "100%",
         alignItems: "center",
@@ -226,7 +257,7 @@ const styles = StyleSheet.create({
         marginBottom: 25,
     },
     otpInput: {
-        width: 50,
+        width: 40,
         height: 50,
         borderRadius: 10,
         backgroundColor: "#14162F",

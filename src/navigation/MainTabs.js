@@ -1,37 +1,54 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import DashboardScreen from "../screens/DashboardScreen";
-import WithdrawScreen from "../screens/WithdrawScreen";
-import TransactionsScreen from "../screens/TransactionsScreen";
-import SettingsScreen from "../screens/SettingsScreen";
+import DistrictScreen from "../screens/DistrictScreen";
+import LocationScreen from "../screens/LocationScreen";
+import ProgrammeScreen from "../screens/ProgrammeScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
 import HomeIcon from "../assets/icons/home.svg";
-import WithdrawIcon from "../assets/icons/deposit.svg";
+import DistrictIcon from "../assets/icons/qrcode-location.svg";
+import LocationIcon from "../assets/icons/region-pin-alt.svg";
 import ListIcon from "../assets/icons/list.svg";
-import SettingsIcon from "../assets/icons/settings.svg";
+import ProgrammeIcon from "../assets/icons/schedule.svg";
+import SettingsIcon from "../assets/icons/profile.svg";
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          height: 70 + insets.bottom,
+          paddingBottom: insets.bottom,
+          backgroundColor: "#000000",
+          borderTopWidth: 0,
+          elevation: 0,
+        },
+        tabBarItemStyle: {
+          marginTop: 15,
+        },
         tabBarBackground: () => (
           <LinearGradient
-            colors={["#0A244A", "#0E354F"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ flex: 1, borderRadius: 10 }}
+            colors={["#1982beff", "#56c1ffff"]}
+            start={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 0 }}
+            style={{ flex: 1 }}
           />
         ),
       }}
     >
+
       {/* HOME */}
       <Tab.Screen
         name="Home"
@@ -46,46 +63,56 @@ export default function MainTabs() {
           ),
         }}
       />
-
-      {/* Withdraw */}
       <Tab.Screen
-        name="Withdraw"
-        component={WithdrawScreen}
+        name="District"
+        component={DistrictScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabButton
-              icon={<WithdrawIcon width={24} height={24} fill={focused ? "#fff" : "#c8d4e8"} />}
-              label="Withdraw"
+              icon={<DistrictIcon width={24} height={24} fill={focused ? "#fff" : "#c8d4e8"} />}
+              label="District"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Location"
+        component={LocationScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabButton
+              icon={<LocationIcon width={24} height={24} fill={focused ? "#fff" : "#c8d4e8"} />}
+              label="Location"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Programme"
+        component={ProgrammeScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabButton
+              icon={<ProgrammeIcon width={24} height={24} fill={focused ? "#fff" : "#c8d4e8"} />}
+              label="Programme"
               focused={focused}
             />
           ),
         }}
       />
 
-      {/* Transactions */}
-      <Tab.Screen
-        name="Transactions"
-        component={TransactionsScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabButton
-              icon={<ListIcon width={24} height={24} fill={focused ? "#fff" : "#c8d4e8"} />}
-              label="Transactions"
-              focused={focused}
-            />
-          ),
-        }}
-      />
 
       {/* Settings */}
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="profile"
+        component={ProfileScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <TabButton
               icon={<SettingsIcon width={24} height={24} fill={focused ? "#fff" : "#c8d4e8"} />}
-              label="Settings"
+              label="Profile"
               focused={focused}
             />
           ),
@@ -110,45 +137,31 @@ function TabButton({ icon, label, focused }) {
 
 /* ---------------- STYLES ---------------- */
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 80,
-    position: "absolute",
-    bottom: 20,
-    left: "5%",
-    right: "5%",
-    borderRadius: 15,
-    overflow: "hidden",
-    backgroundColor: "transparent",
-    borderTopWidth: 0,
-    elevation: 0,
+  tabBarItemStyle: {
+    marginTop: 0,
   },
   tabButtonWrapper: {
     alignItems: "center",
     justifyContent: "center",
     width: 80,
-    height: 70,
-    marginTop:40
+    height: 60,
   },
-
   iconContainer: {
     padding: 8,
-    borderRadius: 14,
+    borderRadius: 5,
   },
-
   iconActive: {
-    backgroundColor: "rgba(56, 180, 255, 0.18)",
-    borderRadius: 10,
+    backgroundColor: "rgba(29, 120, 176, 0.18)",
+    borderRadius: 5,
   },
-
   activeBg: {
     position: "absolute",
     bottom: 0,
     width: 70,
-    height: 70,
-    backgroundColor: "rgba(56, 180, 255, 0.18)",
-    borderRadius: 15,
+    height: 64,
+    backgroundColor: "rgba(107, 169, 236, 0.71)",
+    borderRadius: 5,
   },
-
   label: {
     fontSize: 12,
     marginTop: 2,

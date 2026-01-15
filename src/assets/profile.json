@@ -1,0 +1,35 @@
+[
+  {
+    "id": "privacy",
+    "title": "Privacy Policy",
+    "rules": [
+      "We collect user information only to provide and improve our services.",
+      "Personal data such as name, contact details, and payment info is kept secure.",
+      "User data is never sold or shared with third parties without consent.",
+      "We use standard security measures to protect user information.",
+      "By using the app, you agree to the collection and use of data as stated."
+    ]
+  },
+  {
+    "id": "conditions",
+    "title": "Terms & Conditions",
+    "rules": [
+      "Users must be at least 18 years old to use this application.",
+      "All games are for entertainment purposes and results are final.",
+      "Any misuse, fraud, or unfair activity may result in account suspension.",
+      "The platform reserves the right to modify rules at any time.",
+      "Continued use of the app indicates acceptance of these terms."
+    ]
+  },
+  {
+    "id": "cancellation",
+    "title": "Cancellation & Refund Policy",
+    "rules": [
+      "Once a bet or game entry is confirmed, it cannot be cancelled.",
+      "Completed games or rounds are not eligible for refunds.",
+      "Deposits made successfully are non-refundable.",
+      "Refunds may be issued only in case of technical failure from the platform.",
+      "All refund decisions made by the platform are final."
+    ]
+  }
+]

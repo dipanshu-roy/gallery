@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mygame",
+    "name": "PoliDesk",
     "slug": "mygame",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,20 +8,30 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splsah-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FEF1EB"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "package": "com.dipanshu.mygame",
+      "package": "com.PoliDesk.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FEF1EB"
       },
-      "edgeToEdgeEnabled": true
+      "navigationBar": {
+        "visible": true,
+        "barStyle": "dark-content",
+        "backgroundColor": "#000000"
+      },
+      "permissions": [
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO"
+      ],
+      "edgeToEdgeEnabled": false,
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,7 +42,9 @@
       }
     },
     "plugins": [
+      "expo-image-picker",
       "expo-secure-store"
-    ]
+    ],
+    "owner": "deep_roy"
   }
 }

@@ -5,9 +5,14 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Keyboard
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BASE_URL } from "../config/api";
 import BottomAlert from "../components/BottomAlert";
 import CustomButton from '../components/CustomButton';
 import colors from '../styles/colors';
@@ -50,7 +55,7 @@ export default function RegisterScreen({ navigation }) {
 
   const checkUsername = async () => {
     try {
-      const res = await fetch("http://43.205.125.181/api/check-username", {
+      const res = await fetch(BASE_URL + "check-username", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
@@ -91,9 +96,8 @@ export default function RegisterScreen({ navigation }) {
     }
 
     try {
-      setLoading(true); // 🔥 START LOADER
-
-      const res = await fetch("http://3.110.147.202/api/register", {
+      setLoading(true);
+      const res = await fetch(`${BASE_URL}register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -106,6 +110,7 @@ export default function RegisterScreen({ navigation }) {
       });
 
       const data = await res.json();
+      console.log(data);
 
       if (data.status === 200) {
         navigation.navigate("OtpScreen", { token: data.token });
@@ -127,96 +132,117 @@ export default function RegisterScreen({ navigation }) {
       end={{ x: 0, y: 1 }}
       style={styles.gradient}
     >
-      <View style={styles.container}>
-        <Image source={Glow} style={styles.bottomGlowImage} resizeMode="contain" />
+      {/* ✅ FIXED BACKGROUND IMAGE */}
+      <Image
+        source={Glow}
+        style={styles.bottomGlowImage}
+        resizeMode="contain"
+      />
 
-        <View style={styles.logoTab}>
-          <Image
-            source={require("../assets/images/logo.png")}
-            style={styles.logo}
-          />
-        </View>
+      {/* ✅ ONLY FORM MOVES WITH KEYBOARD */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            {/* Logo */}
+            <View style={styles.logoTab}>
+              <Image
+                source={require("../assets/images/logo.png")}
+                style={styles.logo}
+              />
+            </View>
 
-        <Text style={styles.headerTitle}>Register</Text>
-        <Text style={styles.subtitle}>Create your account to continue</Text>
+            <Text style={styles.headerTitle}>Register</Text>
+            <Text style={styles.subtitle}>Create your account to continue</Text>
 
-        {/* Username */}
-        <Text style={styles.label}>Username</Text>
-        <TextInput
-          placeholder="Enter username"
-          maxLength={8}
-          placeholderTextColor={colors.gray}
-          value={username}
-          onChangeText={(text) => setUsername(text.toUpperCase())}
-          style={styles.input}
-        />
-        {usernameStatus === "available" && (
-          <Text style={{ color: "#198754", marginBottom: 10 }}>
-            ✔ Username available
-          </Text>
-        )}
-        {usernameStatus === "taken" && (
-          <Text style={{ color: "#a52834", marginBottom: 10 }}>
-            ✖ Username already taken
-          </Text>
-        )}
+            {/* Username */}
+            <Text style={styles.label}>Username</Text>
+            <TextInput
+              placeholder="Enter username"
+              maxLength={8}
+              placeholderTextColor={colors.gray}
+              value={username}
+              onChangeText={(text) => setUsername(text.toUpperCase())}
+              style={styles.input}
+            />
+            {usernameStatus === "available" && (
+              <Text style={{ color: "#198754", marginBottom: 10 }}>
+                ✔ Username available
+              </Text>
+            )}
+            {usernameStatus === "taken" && (
+              <Text style={{ color: "#a52834", marginBottom: 10 }}>
+                ✖ Username already taken
+              </Text>
+            )}
 
-        <Text style={styles.label}>Phone Number</Text>
-        <TextInput
-          placeholder="Enter phone number"
-          placeholderTextColor={colors.gray}
-          keyboardType="number-pad"
-          maxLength={10}
-          value={phone}
-          onChangeText={(text) => {
-            const cleaned = text.replace(/[^0-9]/g, "");
-            setPhone(cleaned);
-          }}
-          style={styles.input}
-        />
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              placeholder="Enter phone number"
+              placeholderTextColor={colors.gray}
+              keyboardType="number-pad"
+              maxLength={10}
+              value={phone}
+              onChangeText={(text) => {
+                const cleaned = text.replace(/[^0-9]/g, "");
+                setPhone(cleaned);
+              }}
+              style={styles.input}
+            />
 
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          placeholder="Enter your email"
-          placeholderTextColor={colors.gray}
-          value={email}
-          onChangeText={(text) => setEmail(text.toLowerCase())}
-          style={styles.input}
-        />
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              placeholder="Enter your email"
+              placeholderTextColor={colors.gray}
+              value={email}
+              onChangeText={(text) => setEmail(text.toLowerCase())}
+              style={styles.input}
+            />
 
-        <Text style={styles.label}>Password</Text>
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor={colors.gray}
-          // secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={styles.input}
-        />
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor={colors.gray}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              style={styles.input}
+            />
 
-        <Text style={styles.label}>Confirm Password</Text>
-        <TextInput
-          placeholder="Confirm password"
-          placeholderTextColor={colors.gray}
-          // secureTextEntry
-          value={cpassword}
-          onChangeText={setCpassword}
-          style={styles.input}
-        />
-        
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              placeholder="Confirm password"
+              placeholderTextColor={colors.gray}
+              secureTextEntry
+              value={cpassword}
+              onChangeText={setCpassword}
+              style={styles.input}
+            />
 
-        <CustomButton
-          title="Create Account"
-          onPress={handleRegister}
-          loading={loading}
-          disabled={loading || !isPhoneValid || !isEmailValid}
-        />
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Text style={styles.switchText}>
-            Already have an account? Login
-          </Text>
-        </TouchableOpacity>
-      </View>
+
+            <CustomButton
+              title="Create Account"
+              onPress={handleRegister}
+              loading={loading}
+              disabled={loading || !isPhoneValid || !isEmailValid}
+              style={styles.customButton}
+            />
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.switchText}>
+                Already have an account? Login
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
       <BottomAlert
         visible={alertVisible}
         message={alertMessage}
@@ -226,7 +252,6 @@ export default function RegisterScreen({ navigation }) {
     </LinearGradient>
   );
 }
-
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: {
@@ -270,4 +295,7 @@ const styles = StyleSheet.create({
     left: "-20%",
     opacity: 0.9
   },
+  customButton: {
+    marginTop: 10
+  }
 });

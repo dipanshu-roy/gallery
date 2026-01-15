@@ -12,7 +12,7 @@ export default {
     backgroundColor: "#ffffff",
     borderRadius: 10,
     padding: 14,
-    fontSize: 16,
+    fontSize: 14,
     borderColor: "#dcdcdc",
     borderWidth: 1,
     marginBottom: 10,
