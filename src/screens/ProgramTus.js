@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
     View,
     Text,
@@ -9,21 +9,26 @@ import {
     Modal,
     TextInput,
     ScrollView,
-    InteractionManager,
-    Alert,
+    InteractionManager
 } from "react-native";
 import axios from "axios";
 import { useFocusEffect } from "@react-navigation/native";
+import { Upload } from "tus-js-client";
+
 
 import { BASE_URL } from "../config/api";
 import { getToken, removeToken } from "../storage/storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
+
+
 import BackIcon from "../assets/icons/angle-left.svg";
 import AddIcon from "../assets/icons/apps-add.svg";
+
 import CardTable from "../components/CardTable";
 import ConfirmAlert from "../components/ConfirmAlert";
 import TopAlert from "../components/TopAlert";
 
+import * as ImagePicker from "expo-image-picker";
 
 
 
@@ -35,7 +40,6 @@ export default function ProgrammeScreen({ navigation }) {
 
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-
 
     const [showModal, setShowModal] = useState(false);
     const [programmeName, setProgrammeName] = useState("");
@@ -56,12 +60,31 @@ export default function ProgrammeScreen({ navigation }) {
     const [showLocationSelect, setShowLocationSelect] = useState(false);
 
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [uploadingProgrammeId, setUploadingProgrammeId] = useState(null);
+
+    const [tusUpload, setTusUpload] = useState(null);
+    const [isPaused, setIsPaused] = useState(false);
+
+    const closeAllModals = () => {
+        setShowModal(false);
+        setShowDistrictSelect(false);
+        setShowLocationSelect(false);
+    };
+
     /* ---------------- ALERT ---------------- */
     const showAlert = (msg, type = "error") => {
         setAlertMessage(msg);
         setAlertType(type);
         setAlertVisible(true);
     };
+    const pauseUpload = () => {
+    if (tusUpload) {
+        tusUpload.abort(); // ⏸ pause
+        setIsPaused(true);
+        console.log("Upload paused");
+    }
+};
 
     /* ---------------- LOAD ---------------- */
     useFocusEffect(
@@ -70,19 +93,108 @@ export default function ProgrammeScreen({ navigation }) {
             fetchProgrammes();
         }, [])
     );
-    
-    
     const handleUpload = async (row) => {
         const programmeId = row.data[0].value;
-        const programmeName = row.title;
-        const token = await getToken();
 
-        navigation.navigate("UploadWebView", {
-            programmeId,
-            token,
-            programmeName
+        const permission =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission.status !== "granted") {
+            showAlert("Permission required");
+            return;
+        }
+        InteractionManager.runAfterInteractions(async () => {
+            try {
+                console.log("Opening picker...");
+
+                const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.All,
+                    allowsMultipleSelection: false,
+                    quality: 1,
+                });
+
+                console.log("Picker result:", result);
+
+                if (result.canceled) return;
+
+                const file = result.assets[0];
+
+                if (file.fileSize > 50 * 1024 * 1024) {
+                    uploadVideoTus(file, programmeId);
+                } else {
+                    uploadVideoTus(file, programmeId);
+                }
+            } catch (err) {
+                console.log("Picker error:", err);
+            }
         });
     };
+    const uploadVideoTus = async (file, programmeId) => {
+        const token = await getToken();
+
+        setUploadingProgrammeId(programmeId);
+        setUploadProgress(0);
+        setIsPaused(false);
+
+        return new Promise((resolve, reject) => {
+            const upload = new Upload(
+                {
+                    uri: file.uri,
+                    size: file.fileSize,
+                    type: file.mimeType,
+                    name: file.fileName,
+                },
+                {
+                    endpoint: `${BASE_URL}tus`,
+                    chunkSize: 20 * 1024 * 1024,
+                    retryDelays: [0, 1000, 3000, 5000],
+                    parallelUploads: 1,
+
+                    metadata: {
+                        filename: file.fileName,
+                        programme_id: programmeId.toString(),
+                        access_token: token,
+                        mime_type: file.mimeType,
+                    },
+
+                    onProgress: (chunkUploaded, chunkTotal) => {
+                        const offset = upload.offset || 0;
+                        const fileSize = upload.file.size || file.fileSize;
+                        if (!fileSize) return;
+
+                        const percent = Math.floor((offset / fileSize) * 100);
+                        setUploadProgress(percent);
+                    },
+
+                    onError: (e) => {
+                        console.log("TUS error:", e);
+                        setUploadingProgrammeId(null);
+                        setTusUpload(null);
+                        reject(e);
+                    },
+
+                    onSuccess: () => {
+                        setUploadProgress(100);
+                        setUploadingProgrammeId(null);
+                        setTusUpload(null);
+                        resolve();
+                    },
+                }
+            );
+
+            // 🔥 STORE INSTANCE
+            setTusUpload(upload);
+
+            upload.start();
+        });
+    };
+    const resumeUpload = () => {
+        if (tusUpload) {
+            setIsPaused(false);
+            tusUpload.start(); // ▶️ resume
+            console.log("Upload resumed");
+        }
+    };
+
     const fetchDistricts = async () => {
         try {
             const token = await getToken();
@@ -95,26 +207,12 @@ export default function ProgrammeScreen({ navigation }) {
         }
     };
     const fetchLocationsByDistrict = async (id) => {
-        if (!id) {
-            setLocations([]);   // reset locations
-            return;
-        }
-        try {
-            const token = await getToken();
-            const res = await axios.post(`${BASE_URL}gat-location`, {
-                access_token: token,
-                district_id: id,
-            });
-
-            if (res.data.status === 200) {
-                setLocations(res.data.data);
-            } else {
-                setLocations([]);
-            }
-        } catch (e) {
-            console.log("Location fetch failed", e);
-            setLocations([]);
-        }
+        const token = await getToken();
+        const res = await axios.post(`${BASE_URL}location`, {
+            access_token: token,
+            district_id: id,
+        });
+        if (res.data.status === 200) setLocations(res.data.data);
     };
 
     const fetchProgrammes = async () => {
@@ -147,6 +245,7 @@ export default function ProgrammeScreen({ navigation }) {
             setRefreshing(false);
         }
     };
+
     /* ---------------- ADD / EDIT ---------------- */
     const openAdd = () => {
         setEditId(null);
@@ -160,24 +259,11 @@ export default function ProgrammeScreen({ navigation }) {
     };
 
     const openEdit = (row) => {
-        const programmeId = row.data[0].value;
-
-        setEditId(programmeId);
+        setEditId(row.data[0].value);
         setProgrammeName(row.title);
         setEventDate(row.data[3].value);
-
-        const districtName = row.data[1].value;
-        const locationName = row.data[2].value;
-
-        const district = districts.find(d => d.district_name === districtName);
-        if (district) {
-            setDistrictId(district.id);
-            fetchLocationsByDistrict(district.id);
-        }
-
         setShowModal(true);
     };
-
 
     /* ---------------- SAVE ---------------- */
     const saveProgramme = async () => {
@@ -189,6 +275,8 @@ export default function ProgrammeScreen({ navigation }) {
 
         try {
             setSaving(true);
+
+
             const res = await axios.post(`${BASE_URL}programme/save`, {
                 access_token: token,
                 id: editId,
@@ -207,14 +295,7 @@ export default function ProgrammeScreen({ navigation }) {
             setSaving(false);
         }
     };
-    useEffect(() => {
-        if (districtId) {
-            fetchLocationsByDistrict(districtId);
-        } else {
-            setLocations([]);
-            setLocationId(null);
-        }
-    }, [districtId]);
+
     /* ---------------- DELETE ---------------- */
     const confirmDelete = async () => {
         try {
@@ -252,7 +333,35 @@ export default function ProgrammeScreen({ navigation }) {
                     <AddIcon width={22} height={22} fill="#fff" />
                 </TouchableOpacity>
             </View>
-            
+            {uploadingProgrammeId && (
+                <View style={styles.progressBox}>
+                    <View style={styles.progressTrack}>
+                        <View style={[styles.progressBar, { width: `${uploadProgress}%` }]} />
+                    </View>
+
+                    <Text style={styles.progressText}>
+                        Uploading… {uploadProgress}%
+                    </Text>
+
+                    <View style={{ flexDirection: "row", marginTop: 10 }}>
+                        {!isPaused ? (
+                            <TouchableOpacity
+                                style={styles.pauseBtn}
+                                onPress={pauseUpload}
+                            >
+                                <Text style={styles.pauseText}>Pause</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                style={styles.resumeBtn}
+                                onPress={resumeUpload}
+                            >
+                                <Text style={styles.resumeText}>Resume</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            )}
 
 
 
@@ -274,6 +383,7 @@ export default function ProgrammeScreen({ navigation }) {
                 onRefresh={fetchProgrammes}
             />
 
+            {/* DELETE */}
             <ConfirmAlert
                 visible={showDeleteAlert}
                 title="Delete Programme"
@@ -342,24 +452,21 @@ export default function ProgrammeScreen({ navigation }) {
                                 </Text>
                             </TouchableOpacity>
 
+                            {/* Location Select */}
                             <TouchableOpacity
                                 style={styles.selectInput}
-                                disabled={!districtId || locations.length === 0}
                                 onPress={() => {
-                                    if (locations.length === 0) {
-                                        showAlert("No locations found for this district");
+                                    if (!districtId) {
+                                        alert("Please select district first");
                                         return;
                                     }
                                     setShowLocationSelect(true);
                                 }}
                             >
-                                <Text style={!districtId ? styles.placeholder : styles.selectText}>
-                                    {!districtId
-                                        ? "Select District First"
-                                        : locations.find(l => l.id === locationId)?.location_name || "Select Location"}
+                                <Text style={locationId ? styles.selectText : styles.placeholder}>
+                                    {locations.find(l => l.id === locationId)?.location_name || "Select Location"}
                                 </Text>
                             </TouchableOpacity>
-
 
                             {/* ACTION BUTTONS */}
                             <View style={styles.modalActions}>
@@ -396,8 +503,6 @@ export default function ProgrammeScreen({ navigation }) {
                                     style={styles.selectItem}
                                     onPress={() => {
                                         setDistrictId(d.id);
-                                        setLocationId(null);
-                                        setLocations([]); 
                                         fetchLocationsByDistrict(d.id);
                                         setShowDistrictSelect(false);
                                     }}
@@ -550,4 +655,51 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
     },
+    progressBox: {
+        marginHorizontal: 20,
+        marginBottom: 14,
+        backgroundColor: "#f1f5f9",
+        borderRadius: 10,
+        padding: 6,
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 1,
+    },
+
+    progressTrack: {
+        height: 8,
+        backgroundColor: "#e5e7eb",
+        borderRadius: 6,
+        overflow: "hidden",
+    },
+
+    progressBar: {
+        height: "100%",
+        backgroundColor: "#1f98e0",
+        borderRadius: 6,
+    },
+
+    progressText: {
+        marginTop: 6,
+        textAlign: "center",
+        fontSize: 11,
+        fontWeight: "600",
+        color: "#1f98e0",
+    },
+    pauseBtn: {
+        backgroundColor: "#f44336",
+        padding: 8,
+        borderRadius: 6,
+        marginRight: 10,
+    },
+    pauseText: { color: "#fff" },
+
+    resumeBtn: {
+        backgroundColor: "#4caf50",
+        padding: 8,
+        borderRadius: 6,
+    },
+    resumeText: { color: "#fff" },
+
 });

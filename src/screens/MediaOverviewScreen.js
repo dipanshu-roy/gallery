@@ -9,8 +9,8 @@ import {
 import axios from "axios";
 import { BASE_URL } from "../config/api";
 import { getToken } from "../storage/storage";
-import { Feather } from "@expo/vector-icons";
 import BackIcon from "../assets/icons/angle-left.svg";
+import { Feather, Ionicons } from "@expo/vector-icons";
 
 export default function MediaOverviewScreen({ navigation, route }) {
     const { programmeId } = route.params;
@@ -25,14 +25,22 @@ export default function MediaOverviewScreen({ navigation, route }) {
         const token = await getToken();
         const res = await axios.post(`${BASE_URL}media/overview`, {
             access_token: token,
-            programme_id:programmeId,
+            programme_id: programmeId,
         });
-        console.log(res.data);
         if (res.data.status === 200) {
             setMedia(res.data.data);
         }
         setLoading(false);
     };
+    const combinedMedia = [
+        {
+            type: "favourite",
+            total_files: null,
+            disk_size: null,
+            db_size: null,
+        },
+        ...media,
+    ];
 
     if (loading) {
         return <ActivityIndicator style={{ marginTop: 40 }} />;
@@ -52,7 +60,7 @@ export default function MediaOverviewScreen({ navigation, route }) {
                 <View style={{ width: 36 }} />
             </View>
 
-            {media.map((item) => (
+            {combinedMedia.map((item) => (
                 <TouchableOpacity
                     key={item.type}
                     style={styles.card}
@@ -64,30 +72,46 @@ export default function MediaOverviewScreen({ navigation, route }) {
                     }
                 >
                     <View style={styles.iconBox}>
-                        <Feather
-                            name={item.type === "photo" ? "image" : "video"}
-                            size={22}
-                            color="#1f98e0"
-                        />
+                        {item.type === "favourite" ? (
+                            <Ionicons name="heart" size={22} color="#ef4444" />
+                        ) : (
+                            <Feather
+                                name={item.type === "photo" ? "image" : "video"}
+                                size={22}
+                                color="#1f98e0"
+                            />
+                        )}
                     </View>
 
                     <View style={styles.info}>
                         <Text style={styles.type}>
-                            {item.type === "photo" ? "Images" : "Videos"}
+                            {item.type === "photo"
+                                ? "Images"
+                                : item.type === "video"
+                                    ? "Videos"
+                                    : "Favourites"}
                         </Text>
-                        <Text style={styles.meta}>
-                            {item.total_files} files • {item.disk_size}
-                        </Text>
-                        <Text style={styles.dbSize}>DB size: {item.db_size}</Text>
+
+                        {item.type === "favourite" ? (
+                            <Text style={styles.meta}>Your favourite images & videos</Text>
+                        ) : (
+                            <>
+                                <Text style={styles.meta}>
+                                    {item.total_files} files • {item.disk_size}
+                                </Text>
+                                <Text style={styles.dbSize}>DB size: {item.db_size}</Text>
+                            </>
+                        )}
                     </View>
                 </TouchableOpacity>
             ))}
+
         </View>
     );
 }
 const styles = StyleSheet.create({
-    
-    
+
+
     card: {
         flexDirection: "row",
         alignItems: "center",
@@ -135,16 +159,16 @@ const styles = StyleSheet.create({
         fontWeight: "700",
     },
     topBar: {
-    width: "100%",
-    paddingHorizontal: 0,
-    marginBottom: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  iconBtn: {
-    padding: 6,
-    backgroundColor: "#1f98e0",
-    borderRadius: 8,
-  },
+        width: "100%",
+        paddingHorizontal: 0,
+        marginBottom: 10,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    iconBtn: {
+        padding: 6,
+        backgroundColor: "#1f98e0",
+        borderRadius: 8,
+    },
 });

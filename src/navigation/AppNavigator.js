@@ -7,6 +7,7 @@ import LoginScreen from '../screens/LoginScreen';
 import DistrictScreen from '../screens/DistrictScreen';
 import LocationScreen from '../screens/LocationScreen';
 import ProgrammeScreen from '../screens/ProgrammeScreen';
+import UploadWebView from '../screens/UploadWebView';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProgrammeMediaScreen from '../screens/ProgrammeMediaScreen';
 import MediaOverviewScreen from '../screens/MediaOverviewScreen';
@@ -22,6 +23,7 @@ export default function AppNavigator({ initialRoute }) {
         <Stack.Screen name="Splash1" component={Splash1} options={{ headerShown: false }} />
         {/* <Stack.Screen name="OtpScreen" component={OtpScreen} options={{ headerShown: false }} /> */}
         <Stack.Screen name="Profile" component={ProfileScreen} options={{ header: () => <AppHeader /> }} />
+        <Stack.Screen name="UploadWebView" component={UploadWebView} options={{ header: () => <AppHeader /> }} />
 
         <Stack.Screen
           name="Login"

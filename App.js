@@ -1,12 +1,14 @@
+import "react-native-get-random-values";
 import React, { useEffect, useState } from "react";
 import { Platform, View, StyleSheet } from "react-native";
 import * as NavigationBar from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { isSplashShown } from "./src/storage/storage";
+import * as IntentLauncher from "expo-intent-launcher";
 
 export default function App() {
-  
+
   const [initialRoute, setInitialRoute] = useState(null);
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -25,6 +27,36 @@ export default function App() {
     };
     init();
   }, []);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    const getSharedImage = async () => {
+      try {
+        const intent = await IntentLauncher.getInitialIntentAsync();
+        if (!intent) return;
+
+        if (intent.action === "android.intent.action.SEND") {
+          const uri = intent.extras?.["android.intent.extra.STREAM"];
+          if (uri) {
+            console.log("📸 Shared image:", uri);
+            // TODO: store this uri or navigate to upload screen
+          }
+        }
+
+        if (intent.action === "android.intent.action.SEND_MULTIPLE") {
+          const uris = intent.extras?.["android.intent.extra.STREAM"];
+          if (uris?.length) {
+            console.log("📸 Shared images:", uris);
+          }
+        }
+      } catch (e) {
+        console.log("Share intent error", e);
+      }
+    };
+
+    getSharedImage();
+  }, []);
+
 
   if (!initialRoute) {
     return <View style={{ flex: 1, backgroundColor: "#1f98e0" }} />;

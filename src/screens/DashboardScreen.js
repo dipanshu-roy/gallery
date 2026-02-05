@@ -6,24 +6,20 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList
+  FlatList,
+  TextInput,
+  Linking,
+  Alert
 } from "react-native";
 import axios from "axios";
 import { BASE_URL } from "../config/api";
 import TopAlert from "../components/TopAlert";
-import ProgrammeIcon from "../assets/icons/schedule.svg";
-import DistrictIcon from "../assets/icons/qrcode-location.svg";
-import LocationIcon from "../assets/icons/region-pin-alt.svg";
 import { getToken, removeToken } from "../storage/storage";
 import ProgrammeListItem from "../components/ProgrammeListItem";
-
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 export default function DashboardScreen({ navigation }) {
-  const [counts, setCounts] = useState({
-    districts: 0,
-    locations: 0,
-    programmes: 0,
-  });
+
   const [loading, setLoading] = useState(true);
 
   const [alertVisible, setAlertVisible] = useState(false);
@@ -31,6 +27,25 @@ export default function DashboardScreen({ navigation }) {
   const [alertType, setAlertType] = useState("error");
   const [refreshing, setRefreshing] = useState(false);
   const [programmes, setProgrammes] = useState([]);
+  const [searchText, setSearchText] = useState("");
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [zipLoading, setZipLoading] = useState(false);
+
+
+  const filteredProgrammes = programmes.filter(item => {
+    const matchesName = item.programme_name
+      .toLowerCase()
+      .includes(searchText.toLowerCase());
+
+    const matchesDate = selectedDate
+      ? new Date(item.event_date).toDateString() ===
+      new Date(selectedDate).toDateString()
+      : true;
+
+    return matchesName && matchesDate;
+  });
+
 
   const showAlert = (msg, type = "error") => {
     setAlertMessage(msg);
@@ -40,41 +55,64 @@ export default function DashboardScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      fetchDashboardCounts();
       fetchProgrammes();
     }, [])
   );
-
-  const fetchDashboardCounts = async () => {
+  const shareProgrammeZip = async (programme) => {
     try {
+      setZipLoading(true);
+
       const token = await getToken();
 
-      if (!token) {
-        navigation.replace("Login");
+      const res = await axios.post(`${BASE_URL}programme/zip`, {
+        access_token: token,
+        programme_id: programme.id,
+      });
+
+      const zipUrl = res.data?.zip_url;
+
+      if (!zipUrl) {
+        Alert.alert("Error", "ZIP generation failed");
         return;
       }
 
-      const res = await axios.post(`${BASE_URL}dashboard-counts`, {
-        access_token: token,
-      });
+      // 📤 Share via WhatsApp
+      const message = `Download ZIP for "${programme.programme_name}":\n${zipUrl}`;
+      const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
 
-      if (res.data?.status === 200) {
-        setCounts(res.data.data);
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
       } else {
-        showAlert(res.data?.message || "Failed to load dashboard data");
+        // fallback: system share or browser
+        Alert.alert(
+          "WhatsApp not installed",
+          "Copy link instead?",
+          [
+            {
+              text: "Copy Link",
+              onPress: () => Linking.openURL(zipUrl),
+            },
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
       }
-    } catch (err) {
-      if (err.response?.status === 401) {
-        await removeToken();
-        navigation.replace("Login");
-      } else {
-        console.log("Dashboard error:", err.message);
-        showAlert("Server error");
-      }
+    } catch (e) {
+      console.log("ZIP SHARE ERROR", e);
+      Alert.alert("Error", "Unable to share ZIP link");
     } finally {
-      setLoading(false);
+      setZipLoading(false);
     }
   };
+
+
+  
+
+
+  
+
+
   const fetchProgrammes = async () => {
     try {
       setLoading(true);
@@ -108,29 +146,58 @@ export default function DashboardScreen({ navigation }) {
     <View style={styles.container}>
       <Text style={styles.title_head}>Dashboard</Text>
 
-      <View style={styles.grid}>
-        <DashboardBox
-          title="Districts"
-          count={counts.districts}
-          Icon={DistrictIcon}
-          onPress={() => navigation.navigate("District")}
+      {zipLoading && (
+        <View style={styles.zipLoader}>
+          <ActivityIndicator size="large" color="#1f98e0" />
+          <Text style={{ marginTop: 8 }}>Preparing ZIP…</Text>
+        </View>
+      )}
+      <View style={styles.filterBar}>
+        {/* SEARCH BY NAME */}
+        <TextInput
+          placeholder="Search programme name"
+          value={searchText}
+          onChangeText={setSearchText}
+          style={styles.searchInput}
         />
 
-        <DashboardBox
-          title="Locations"
-          count={counts.locations}
-          Icon={LocationIcon}
-          onPress={() => navigation.navigate("Location")}
-        />
+        {/* DATE FILTER */}
+        <TouchableOpacity
+          style={styles.dateBtn}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={styles.dateText}>
+            {selectedDate
+              ? new Date(selectedDate).toLocaleDateString("en-GB")
+              : "Filter by date"}
+          </Text>
+        </TouchableOpacity>
 
-        <DashboardBox
-          title="Programmes"
-          count={counts.programmes}
-          Icon={ProgrammeIcon}
-        />
+        {/* CLEAR */}
+        {(searchText || selectedDate) && (
+          <TouchableOpacity
+            onPress={() => {
+              setSearchText("");
+              setSelectedDate(null);
+            }}
+          >
+            <Text style={styles.clearText}>Clear</Text>
+          </TouchableOpacity>
+        )}
       </View>
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate ? new Date(selectedDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, date) => {
+            setShowDatePicker(false);
+            if (date) setSelectedDate(date);
+          }}
+        />
+      )}
       <FlatList
-        data={programmes}
+        data={filteredProgrammes}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <ProgrammeListItem
@@ -140,14 +207,10 @@ export default function DashboardScreen({ navigation }) {
                 programmeId: item.id,
               })
             }
-            onMenu={() => {
-              console.log("Menu for", item.id);
-            }}
+            onDownloadZip={shareProgrammeZip}
           />
         )}
       />
-
-
       <TopAlert
         visible={alertVisible}
         message={alertMessage}
@@ -158,18 +221,7 @@ export default function DashboardScreen({ navigation }) {
   );
 }
 
-function DashboardBox({ title, count, Icon, onPress }) {
-  return (
-    <TouchableOpacity style={styles.box} onPress={onPress} activeOpacity={0.85}>
-      <View style={styles.iconWrap}>
-        <Icon width={28} height={28} fill="#1f98e0" />
-      </View>
 
-      <Text style={styles.boxCount}>{count}</Text>
-      <Text style={styles.boxTitle}>{title}</Text>
-    </TouchableOpacity>
-  );
-}
 
 
 const styles = StyleSheet.create({
@@ -205,38 +257,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  /* -------- GRID -------- */
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-
-  box: {
-    width: "30%",
-    backgroundColor: "#ffffff",
-    borderRadius: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    marginBottom: 18,
-    alignItems: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  iconWrap: {
-    width: 75,
-    height: 75,
-    borderRadius: 10,
-    backgroundColor: "#e8f4ff",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 14,
-  },
-
-  /* -------- TEXT -------- */
   boxCount: {
     fontSize: 25,
     fontWeight: "800",
@@ -251,5 +271,54 @@ const styles = StyleSheet.create({
     color: "#475569",
     letterSpacing: 0.3,
   },
+  filterBar: {
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+  },
+
+  searchInput: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    fontSize: 14,
+  },
+
+  dateBtn: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    marginBottom: 6,
+  },
+
+  dateText: {
+    color: "#475569",
+    fontSize: 14,
+  },
+
+  clearText: {
+    textAlign: "right",
+    color: "#ef4444",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  zipLoader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(255,255,255,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 200,
+  },
+
 });
 
